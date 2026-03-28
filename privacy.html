@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | JibberPOP</title>
+    <meta name="description" content="View the Privacy Policy for JibberPOP, a game by Big Stretch Games, LLC.">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <!-- Include Marked.js for rendering markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container nav-container">
+            <div class="logo">
+                <a href="index.html" style="display:flex; align-items:center; text-decoration:none; color:inherit; gap:15px;">
+                    <img src="assets/images/logo.png" alt="JibberPOP Logo">
+                    <span>JibberPOP</span>
+                </a>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html#features">Features</a></li>
+                    <li><a href="index.html#community">Community</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="privacy-page">
+        <section class="container privacy-container">
+            <div id="content" class="markdown-body">
+                Loading Privacy Policy...
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <img src="assets/images/logo.png" alt="JibberPOP Logo" class="footer-logo">
+                <p>&copy; 2026 Armand Preschutti. All rights reserved.</p>
+            </div>
+            <div class="footer-links">
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Press Kit</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Fetch and render the README.md dynamically
+        fetch('README.md')
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load Privacy Policy');
+                return response.text();
+            })
+            .then(text => {
+                document.getElementById('content').innerHTML = marked.parse(text);
+                
+                // Add smooth scroll to internal anchors
+                document.querySelectorAll('#content a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('href').substring(1);
+                        const targetElement = document.getElementById(targetId);
+                        if(targetElement) {
+                            const yOffset = -100; // offset for fixed header
+                            const y = targetElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                            window.scrollTo({top: y, behavior: 'smooth'});
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                document.getElementById('content').innerHTML = `<h2>Error</h2><p>Could not load Privacy Policy. Please check <a href="https://github.com/armandpreschutti/jibberpop-privacy-policy" style="color:var(--primary-color);">our GitHub page</a> instead.</p>`;
+            });
+    </script>
+</body>
+</html>
