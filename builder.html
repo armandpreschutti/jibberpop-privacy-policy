@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>JibberPOP | Visual Builder</title>
+  <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+  <script src="https://unpkg.com/grapesjs"></script>
+  <script src="https://unpkg.com/grapesjs-preset-webpage"></script>
+  <style>
+    body, html {
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
+      font-family: sans-serif;
+    }
+    #gjs {
+      height: 100vh !important;
+    }
+    #loading {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #1f2833; color: #66fcf1;
+      display: flex; justify-content: center; align-items: center;
+      font-size: 2rem; z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading Studio Editor...</div>
+  
+  <div id="gjs"></div>
+
+  <script>
+    Promise.all([
+      fetch('index.html').then(r => r.text()),
+      fetch('styles.css').then(r => r.text())
+    ]).then(([htmlRaw, css]) => {
+      
+      document.getElementById('loading').style.display = 'none';
+
+      // Parse the HTML to extract the <body> content
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlRaw, 'text/html');
+
+      // Hide the loader from the canvas so it doesn't block your clicks!
+      const loaderComponent = doc.getElementById('loader');
+      const loaderHtml = loaderComponent ? loaderComponent.outerHTML : '';
+      if(loaderComponent) loaderComponent.remove();
+
+      const htmlBody = doc.body.innerHTML;
+
+      const editor = grapesjs.init({
+        container: '#gjs',
+        height: '100vh',
+        width: 'auto',
+        showOffsets: true,
+        noticeOnUnload: false,
+        dragMode: 'absolute', // Allows free-form dragging anywhere!
+        storageManager: false, // Don't save sequentially to local storage
+        plugins: ['gjs-preset-webpage'],
+        pluginsOpts: {
+          'gjs-preset-webpage': {
+            exportOpts: {
+               filenamePfx: 'jibberpop_website'
+            }
+          }
+        },
+        components: htmlBody,
+        style: css,
+        canvas: {
+          styles: [
+            'https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap'
+          ]
+        }
+      });
+      
+      // Explicitly bind the standard hotkeys for undo/redo
+      editor.Keymaps.add('undo-hotkey', 'ctrl+z, meta+z', 'core:undo');
+      editor.Keymaps.add('redo-hotkey', 'ctrl+y, meta+y, ctrl+shift+z, meta+shift+z', 'core:redo');
+      
+      // Super easy image swapping
+      editor.on('component:selected', cmp => {
+         if (cmp.is('image')) {
+            const toolbar = cmp.get('toolbar');
+            if (!toolbar.some(t => t.id === 'custom-img-btn')) {
+               toolbar.unshift({
+                  id: 'custom-img-btn',
+                  command(editor, sender) {
+                     const newSrc = prompt('Enter the new image URL, or a local path (e.g. assets/images/newlogo.png):', cmp.get('src') || '');
+                     if (newSrc !== null) {
+                        cmp.set('src', newSrc);
+                     }
+                  },
+                  label: '🖼️ Swap Image',
+                  attributes: {style: 'padding:5px;cursor:pointer;background:#ff007f;color:white;font-weight:bold;margin-right:5px'}
+               });
+               cmp.set('toolbar', toolbar);
+            }
+         }
+      });
+      
+      // Make everything globally click-to-resize like PowerPoint
+      editor.on('load', () => {
+         const wrapper = editor.getWrapper();
+         if(wrapper) {
+             const makeResizable = (cmp) => {
+                 if(!cmp) return;
+                 // Don't make the absolute root wrapper resizable as it's the <body>
+                 if(cmp !== wrapper) {
+                     cmp.set('resizable', {
+                        tl: 1, tc: 1, tr: 1, cl: 1, cr: 1, bl: 1, bc: 1, br: 1
+                     });
+                 }
+                 const children = cmp.components();
+                 if(children) {
+                    children.forEach(child => makeResizable(child));
+                 }
+             };
+             makeResizable(wrapper);
+         }
+      });
+      
+      // Save handling
+      editor.Panels.addButton('options', {
+        id: 'save-alert',
+        className: 'fa fa-save',
+        command(editor) {
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JibberPOP | A Word Puzzle Game Experience</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    ${loaderHtml}
+    ${editor.getHtml()}
+    <script src="script.js"><\\/script>
+</body>
+</html>`;
+            const cssOut = editor.getCss();
+            
+            const blobHtml = new Blob([html], {type: "text/html;charset=utf-8"});
+            const urlHtml = URL.createObjectURL(blobHtml);
+            const aHtml = document.createElement('a');
+            aHtml.href = urlHtml;
+            aHtml.download = "index.html";
+            aHtml.click();
+
+            const blobCss = new Blob([cssOut], {type: "text/css;charset=utf-8"});
+            const urlCss = URL.createObjectURL(blobCss);
+            const aCss = document.createElement('a');
+            aCss.href = urlCss;
+            aCss.download = "styles.css";
+            aCss.click();
+
+            alert("Downloaded modified index.html and styles.css to your Downloads folder! Drag them into 'jibberpop-privacy-policy-repo' to apply.");
+        },
+        attributes: { title: 'Save & Download Changes' }
+      });
+      
+    }).catch(e => {
+       document.getElementById('loading').innerText = "Error loading files. Ensure the local server is running.";
+       console.error(e);
+    });
+  </script>
+</body>
+</html>
